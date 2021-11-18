@@ -37,9 +37,12 @@ contract PriceConsumerV3 {
         TSLAAddr = 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2;
         ETHAddr = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
         BTCAddr = 0xECe365B379E1dD183B20fc5f022230C044d51404;
-        priceFeed = AggregatorV3Interface(TSLAAddr);
+        priceFeed = AggregatorV3Interface(ETHAddr);
     }
     
+    /**
+     * (make this charge money based on how much you want to bet)
+     */
     function placeBet(int bet) public returns (int) {
         yourBet = bet;
         return yourBet;
@@ -71,7 +74,7 @@ contract PriceConsumerV3 {
     
     /**
      * Give prizes based on how close the bet was
-     * (need to change to return crypto prizes)
+     * (need to change to return crypto prizes based on bet amount)
      */
     function calculatePrize() public returns (int) {
         if (absBetAccuracy < 2) {
