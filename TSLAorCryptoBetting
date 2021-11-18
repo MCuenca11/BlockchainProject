@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
+contract PriceConsumerV3 {
+
+    AggregatorV3Interface internal priceFeed;
+    
+    int public yourBet;
+    int public tslaPrice;
+    int public absBetAccuracy;
+    int public prize;
+
+    /**
+     * Network: Rinkeby
+     * Aggregator: ETH/USD
+     * ETH Address: 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e
+     */
+     
+    /**
+     * Network: Kovan
+     * Aggregator: TSLA/USD
+     * TSLA Address: 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2
+     */
+    constructor() {
+        priceFeed = AggregatorV3Interface(0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2);
+    }
+    
+    function placeBet(int bet) public returns (int) {
+        yourBet = bet;
+        return yourBet;
+    }
+
+    /**
+     * Returns the latest price using chainlink oracle
+     */
+    function getLatestPrice() public returns (int) {
+        (
+            uint80 roundID, 
+            int price,
+            uint startedAt,
+            uint timeStamp,
+            uint80 answeredInRound
+        ) = priceFeed.latestRoundData();
+        // converts price to int
+        tslaPrice = price/10**8;
+        return price/10**8;
+    }
+    
+    /**
+     * finds the absolute value of the difference between your bet and the actual price
+     */
+    function betAccuracy() public returns (int) {
+        absBetAccuracy = abs(yourBet - tslaPrice);
+        return abs(yourBet - tslaPrice);
+    }
+    
+    /**
+     * Give prizes based on how close the bet was
+     * (need to change to return crypto prizes)
+     */
+    function calculatePrize() public returns (int) {
+        if (absBetAccuracy < 2) {
+            prize = 100;
+        }
+        if (2 <= absBetAccuracy && absBetAccuracy < 5) {
+            prize = 50;
+        }
+        else {
+            prize = 0;
+        }
+    }
+    
+    /**
+     * absolute value helper function
+     */
+    function abs(int x) private pure returns (int) {
+        return x >= 0 ? x : -x;
+    }
+}
