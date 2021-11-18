@@ -8,6 +8,11 @@ contract PriceConsumerV3 {
     AggregatorV3Interface internal priceFeed;
     
     int public yourBet;
+    int public betAmount;
+    /**
+     * should be TSLA ETH or BTC
+     */
+    string public bettingOn;
     int public actualPrice;
     int public absBetAccuracy;
     int public prize;
@@ -43,15 +48,29 @@ contract PriceConsumerV3 {
     /**
      * (make this charge money based on how much you want to bet)
      */
-    function placeBet(int bet) public returns (int) {
-        yourBet = bet;
-        return yourBet;
+    function placeBet(int _pricePediction, int _betAmount, string calldata _bettingOn) public {
+        yourBet = _pricePediction;
+        betAmount = _betAmount;
+        bettingOn = _bettingOn;
+        // return yourBet;
     }
 
     /**
      * Returns the latest price using chainlink oracle
      */
     function getLatestPrice() public returns (int) {
+        if (keccak256(bytes(bettingOn)) == keccak256(bytes("TSLA"))){
+            priceFeed = AggregatorV3Interface(TSLAAddr);
+        }
+        
+        if (keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))){
+            priceFeed = AggregatorV3Interface(ETHAddr);
+        }
+        
+        if (keccak256(bytes(bettingOn)) == keccak256(bytes("BTC"))){
+            priceFeed = AggregatorV3Interface(BTCAddr);
+        }
+
         (
             uint80 roundID, 
             int price,
