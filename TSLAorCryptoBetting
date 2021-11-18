@@ -8,9 +8,10 @@ contract PriceConsumerV3 {
     AggregatorV3Interface internal priceFeed;
     
     int public yourBet;
-    int public tslaPrice;
+    int public actualPrice;
     int public absBetAccuracy;
     int public prize;
+    
     address private TSLAAddr; 
     address private ETHAddr; 
     address private BTCAddr; 
@@ -56,7 +57,7 @@ contract PriceConsumerV3 {
             uint80 answeredInRound
         ) = priceFeed.latestRoundData();
         // converts price to int
-        tslaPrice = price/10**8;
+        actualPrice = price/10**8;
         return price/10**8;
     }
     
@@ -64,8 +65,8 @@ contract PriceConsumerV3 {
      * finds the absolute value of the difference between your bet and the actual price
      */
     function betAccuracy() public returns (int) {
-        absBetAccuracy = abs(yourBet - tslaPrice);
-        return abs(yourBet - tslaPrice);
+        absBetAccuracy = abs(yourBet - actualPrice);
+        return abs(yourBet - actualPrice);
     }
     
     /**
