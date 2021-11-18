@@ -11,6 +11,12 @@ contract PriceConsumerV3 {
     int public tslaPrice;
     int public absBetAccuracy;
     int public prize;
+    
+    /**
+     * Network: Kovan
+     * Aggregator: TSLA/USD
+     * TSLA Address: 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2
+     */
 
     /**
      * Network: Rinkeby
@@ -19,9 +25,9 @@ contract PriceConsumerV3 {
      */
      
     /**
-     * Network: Kovan
-     * Aggregator: TSLA/USD
-     * TSLA Address: 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2
+     * Network: Rinkeby
+     * Aggregator: BTC/USD
+     * TSLA Address: 0xECe365B379E1dD183B20fc5f022230C044d51404
      */
     constructor() {
         priceFeed = AggregatorV3Interface(0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2);
