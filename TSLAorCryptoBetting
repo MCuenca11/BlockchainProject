@@ -11,6 +11,9 @@ contract PriceConsumerV3 {
     int public tslaPrice;
     int public absBetAccuracy;
     int public prize;
+    address private TSLAAddr; 
+    address private ETHAddr; 
+    address private BTCAddr; 
     
     /**
      * Network: Kovan
@@ -30,7 +33,10 @@ contract PriceConsumerV3 {
      * TSLA Address: 0xECe365B379E1dD183B20fc5f022230C044d51404
      */
     constructor() {
-        priceFeed = AggregatorV3Interface(0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2);
+        TSLAAddr = 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2;
+        ETHAddr = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
+        BTCAddr = 0xECe365B379E1dD183B20fc5f022230C044d51404;
+        priceFeed = AggregatorV3Interface(TSLAAddr);
     }
     
     function placeBet(int bet) public returns (int) {
