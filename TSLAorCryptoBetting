@@ -14,7 +14,8 @@ contract PriceConsumerV3 {
      */
     string public bettingOn;
     int public actualPrice;
-    int public absBetAccuracy;
+    int private betDifference;
+    int public accuracyPercentage;
     int public prizeAmount;
     
     address private TSLAAddr; 
@@ -89,11 +90,12 @@ contract PriceConsumerV3 {
     }
     
     /**
-     * finds the absolute value of the difference between your bet and the actual price
+     * finds how close the bet was to the actual price in terms of a percentage rounded to an int
      */
     function betAccuracy() public returns (int) {
-        absBetAccuracy = abs(yourBet - actualPrice);
-        return abs(yourBet - actualPrice);
+        betDifference = abs(yourBet - actualPrice);
+        accuracyPercentage = betDifference/actualPrice * 100;
+        return abs(accuracyPercentage);
     }
     
     /**
@@ -101,10 +103,10 @@ contract PriceConsumerV3 {
      * (need to change to return crypto prizes based on bet amount)
      */
     function calculatePrize() public returns (int) {
-        if (absBetAccuracy < 2) {
+        if (accuracyPercentage < 2) {
             return(prizeAmount = 100);
         }
-        if (2 <= absBetAccuracy && absBetAccuracy < 5) {
+        if (2 <= accuracyPercentage && accuracyPercentage < 5) {
             return(prizeAmount = 50);
         }
         else {
