@@ -15,7 +15,7 @@ contract PriceConsumerV3 {
     string public bettingOn;
     int public actualPrice;
     int public absBetAccuracy;
-    int public prize;
+    int public prizeAmount;
     
     address private TSLAAddr; 
     address private ETHAddr; 
@@ -42,18 +42,22 @@ contract PriceConsumerV3 {
         TSLAAddr = 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2;
         ETHAddr = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
         BTCAddr = 0xECe365B379E1dD183B20fc5f022230C044d51404;
-        // set it to ETH by default
-        priceFeed = AggregatorV3Interface(ETHAddr);
+        // set it to the 0 address by default
+        priceFeed = AggregatorV3Interface(address(0));
     }
     
     /**
      * (make this charge money based on how much you want to bet)
+     * (Need to make it check that _bettingOn is either "TSLA" "ETH" or "BTC")
+     * (need to make it check that bet amount is less than the money they own)
      */
     function placeBet(int _pricePediction, int _betAmount, string calldata _bettingOn) public {
+        require(_pricePediction > 0, "invalid price prediction");
+        require(_betAmount > 0, "invalid bet amount");
+        //require(_bettingOn == "TSLA" || _bettingOn == "ETH" || _bettingOn == "BTC");
         yourBet = _pricePediction;
         betAmount = _betAmount;
         bettingOn = _bettingOn;
-        // return yourBet;
     }
 
     /**
@@ -81,7 +85,7 @@ contract PriceConsumerV3 {
         ) = priceFeed.latestRoundData();
         // converts price to int
         actualPrice = price/10**8;
-        return price/10**8;
+        return actualPrice;
     }
     
     /**
@@ -98,13 +102,13 @@ contract PriceConsumerV3 {
      */
     function calculatePrize() public returns (int) {
         if (absBetAccuracy < 2) {
-            prize = 100;
+            return(prizeAmount = 100);
         }
         if (2 <= absBetAccuracy && absBetAccuracy < 5) {
-            prize = 50;
+            return(prizeAmount = 50);
         }
         else {
-            prize = 0;
+            return(prizeAmount = 0);
         }
     }
     
