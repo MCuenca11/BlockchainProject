@@ -8,7 +8,7 @@ contract PriceConsumerV3 {
     AggregatorV3Interface internal priceFeed;
     
     int public yourBet;
-    int public betAmount;
+    uint public betAmount;
     /**
      * should be TSLA ETH or BTC
      */
@@ -18,6 +18,7 @@ contract PriceConsumerV3 {
     int public accuracyPercentage;
     int public prizeAmount;
     
+    address payable public owner;
     address private TSLAAddr; 
     address private ETHAddr; 
     address private BTCAddr; 
@@ -40,6 +41,7 @@ contract PriceConsumerV3 {
      * TSLA Address: 0xECe365B379E1dD183B20fc5f022230C044d51404
      */
     constructor() {
+        address owner = msg.sender;
         TSLAAddr = 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2;
         ETHAddr = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
         BTCAddr = 0xECe365B379E1dD183B20fc5f022230C044d51404;
@@ -47,15 +49,24 @@ contract PriceConsumerV3 {
         priceFeed = AggregatorV3Interface(address(0));
     }
     
+    modifier validBet (uint _amount) {
+        require(msg.value >= 0, "Have to bet more than 0");
+        require(msg.sender.balance >= _amount, "Don't have enough funds to make bet");
+        _;
+    }
+    
     /**
-     * (make this charge money based on how much you want to bet)
-     * (Need to make it check that _bettingOn is either "TSLA" "ETH" or "BTC")
-     * (need to make it check that bet amount is less than the money they own)
+     * (make this charge money based on how much you want to bet) Done
+     * (Need to make it check that _bettingOn is either "TSLA" "ETH" or "BTC") Done
+     * (need to make it check that bet amount is less than the money they own) Done
      */
-    function placeBet(int _pricePediction, int _betAmount, string calldata _bettingOn) public {
+    function placeBet(int _pricePediction, uint _betAmount, string calldata _bettingOn) public payable validBet(_betAmount){
         require(_pricePediction > 0, "invalid price prediction");
-        require(_betAmount > 0, "invalid bet amount");
-        //require(_bettingOn == "TSLA" || _bettingOn == "ETH" || _bettingOn == "BTC");
+        // require that they bet on BTC ETH or TSLA
+        require(keccak256(bytes(_bettingOn)) == keccak256(bytes("TSLA"))
+        || keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))
+        || keccak256(bytes(bettingOn)) == keccak256(bytes("BTC")));
+        owner.transfer(msg.value);
         yourBet = _pricePediction;
         betAmount = _betAmount;
         bettingOn = _bettingOn;
