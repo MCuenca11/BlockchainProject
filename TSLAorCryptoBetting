@@ -66,6 +66,7 @@ contract PriceConsumerV3 {
         require(keccak256(bytes(_bettingOn)) == keccak256(bytes("TSLA"))
         || keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))
         || keccak256(bytes(bettingOn)) == keccak256(bytes("BTC")));
+        // transfer bet to the contract owner
         owner.transfer(msg.value);
         yourBet = _pricePediction;
         betAmount = _betAmount;
@@ -111,17 +112,20 @@ contract PriceConsumerV3 {
     
     /**
      * Give prizes based on how close the bet was
-     * (need to change to return crypto prizes based on bet amount)
+     * (need to change to return crypto prizes based on bet amount) Done
      */
-    function calculatePrize() public returns (int) {
+    function calculatePrize() public payable returns (int) {
+        // if bet was less then 2% away return double the bet
         if (accuracyPercentage < 2) {
-            return(prizeAmount = 100);
+            payable(msg.sender).transfer(msg.value * 2);
         }
+        // if bet was between 2 and 5% net profit is 0
         if (2 <= accuracyPercentage && accuracyPercentage < 5) {
-            return(prizeAmount = 50);
+            payable(msg.sender).transfer(msg.value * 1);
         }
+        // if they are more than 5% off they lost thier bet
         else {
-            return(prizeAmount = 0);
+            return 0;
         }
     }
     
