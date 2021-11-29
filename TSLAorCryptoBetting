@@ -50,7 +50,7 @@ contract PriceConsumerV3 {
     }
 
     modifier validBet (uint _amount) {
-        require(msg.value >= 0, "Have to bet more than 0");
+        require(_amount >= 0, "Have to bet more than 0");
         require(msg.sender.balance >= _amount, "Don't have enough funds to make bet");
         _;
     }
@@ -60,8 +60,10 @@ contract PriceConsumerV3 {
      * (Need to make it check that _bettingOn is either "TSLA" "ETH" or "BTC") Done
      * (need to make it check that bet amount is less than the money they own) Done
      */
-    function placeBet(int _pricePediction, uint _betAmount, string calldata _bettingOn) public payable validBet(_betAmount){
+    function placeBet(int _pricePediction, string calldata _bettingOn) public payable validBet(msg.value){
         require(_pricePediction > 0, "invalid price prediction");
+        // make sure the contract has enough funds to pay gambler if they win
+        require(address(this).balance >= msg.value, "contract doesn't have enough funds to pay prize");
         // require that they bet on BTC ETH or TSLA
         require(keccak256(bytes(_bettingOn)) == keccak256(bytes("TSLA"))
         || keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))
@@ -69,7 +71,7 @@ contract PriceConsumerV3 {
         // transfer bet to the contract owner
         // owner.transfer(msg.value);
         yourBet = _pricePediction;
-        betAmount = _betAmount;
+        betAmount = msg.value;
         bettingOn = _bettingOn;
     }
 
@@ -114,17 +116,17 @@ contract PriceConsumerV3 {
      * (need to change to return crypto prizes based on bet amount) Done
      */
     function calculatePrize() public payable returns (int) {
-        // if bet was less then 2% away return double the bet
+        // if bet was less then $2 away return double the bet
         if (betDifference < 2) {
-            payable(msg.sender).transfer(msg.value * 2);
+            payable(msg.sender).transfer(betAmount);
         }
-        // if bet was between 2 and 5% net profit is 0
+        // if bet was between $2 and $5 net profit is 0
         if (2 <= betDifference && betDifference < 5) {
-            payable(msg.sender).transfer(msg.value * 1);
-        }
-        // if they are more than 5% off they lost their bet
-        else {
             return 0;
+        }
+        // if they are more than $5 off they lost their bet
+        else {
+            owner.transfer(betAmount);
         }
     }
 
@@ -133,5 +135,18 @@ contract PriceConsumerV3 {
      */
     function abs(int x) private pure returns (int) {
         return x >= 0 ? x : -x;
+    }
+
+    /**
+    * helper function to deposit funds to the contract so that it has enough to distribute prize to winner
+    */
+    function depositFunds() external payable {
+
+    }
+    /**
+    * helper function to get the balance of the contract
+    */
+    function balanceOfContract() external view returns(uint) {
+        return address(this).balance;
     }
 }
