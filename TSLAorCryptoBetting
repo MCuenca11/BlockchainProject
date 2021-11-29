@@ -6,7 +6,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 contract PriceConsumerV3 {
 
     AggregatorV3Interface internal priceFeed;
-    
+
     int public yourBet;
     uint public betAmount;
     /**
@@ -15,14 +15,14 @@ contract PriceConsumerV3 {
     string public bettingOn;
     int public actualPrice;
     int private betDifference;
-    int public accuracyPercentage;
+    // int public accuracyPercentage;
     int public prizeAmount;
-    
+
     address payable public owner;
     address private TSLAAddr; 
     address private ETHAddr; 
     address private BTCAddr; 
-    
+
     /**
      * Network: Kovan
      * Aggregator: TSLA/USD
@@ -34,7 +34,7 @@ contract PriceConsumerV3 {
      * Aggregator: ETH/USD
      * ETH Address: 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e
      */
-     
+    
     /**
      * Network: Rinkeby
      * Aggregator: BTC/USD
@@ -48,13 +48,13 @@ contract PriceConsumerV3 {
         // set it to the 0 address by default
         priceFeed = AggregatorV3Interface(address(0));
     }
-    
+
     modifier validBet (uint _amount) {
         require(msg.value >= 0, "Have to bet more than 0");
         require(msg.sender.balance >= _amount, "Don't have enough funds to make bet");
         _;
     }
-    
+
     /**
      * (make this charge money based on how much you want to bet) Done
      * (Need to make it check that _bettingOn is either "TSLA" "ETH" or "BTC") Done
@@ -67,7 +67,7 @@ contract PriceConsumerV3 {
         || keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))
         || keccak256(bytes(bettingOn)) == keccak256(bytes("BTC")));
         // transfer bet to the contract owner
-        owner.transfer(msg.value);
+        // owner.transfer(msg.value);
         yourBet = _pricePediction;
         betAmount = _betAmount;
         bettingOn = _bettingOn;
@@ -80,11 +80,11 @@ contract PriceConsumerV3 {
         if (keccak256(bytes(bettingOn)) == keccak256(bytes("TSLA"))){
             priceFeed = AggregatorV3Interface(TSLAAddr);
         }
-        
+    
         if (keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))){
             priceFeed = AggregatorV3Interface(ETHAddr);
         }
-        
+    
         if (keccak256(bytes(bettingOn)) == keccak256(bytes("BTC"))){
             priceFeed = AggregatorV3Interface(BTCAddr);
         }
@@ -100,35 +100,34 @@ contract PriceConsumerV3 {
         actualPrice = price/10**8;
         return actualPrice;
     }
-    
+
     /**
-     * finds how close the bet was to the actual price in terms of a percentage rounded to an int
+     * finds the absolute value of the difference between your bet and the actual price
      */
     function betAccuracy() public returns (int) {
         betDifference = abs(yourBet - actualPrice);
-        accuracyPercentage = betDifference/actualPrice * 100;
-        return abs(accuracyPercentage);
+        return abs(yourBet - actualPrice);
     }
-    
+
     /**
      * Give prizes based on how close the bet was
      * (need to change to return crypto prizes based on bet amount) Done
      */
     function calculatePrize() public payable returns (int) {
         // if bet was less then 2% away return double the bet
-        if (accuracyPercentage < 2) {
+        if (betDifference < 2) {
             payable(msg.sender).transfer(msg.value * 2);
         }
         // if bet was between 2 and 5% net profit is 0
-        if (2 <= accuracyPercentage && accuracyPercentage < 5) {
+        if (2 <= betDifference && betDifference < 5) {
             payable(msg.sender).transfer(msg.value * 1);
         }
-        // if they are more than 5% off they lost thier bet
+        // if they are more than 5% off they lost their bet
         else {
             return 0;
         }
     }
-    
+
     /**
      * absolute value helper function
      */
