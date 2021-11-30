@@ -5,90 +5,93 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract PriceConsumerV3 {
 
+    /**
+     * How much the player has to bet
+    */
+    uint public contractBalance = 100;
+
+    /**
+     * Live Price Feed
+    */
     AggregatorV3Interface internal priceFeed;
 
-    int public yourBet;
+    /**
+     * Predicted Asset Price
+     */
+    int public predictedAssetPrice;
+
+    /**
+     * Amount Player is betting
+     */
     uint public betAmount;
-    /**
-     * should be TSLA ETH or BTC
-     */
-    string public bettingOn;
-    int public actualPrice;
-    int public betDifference;
-    // int public accuracyPercentage;
-    int private prizeAmount;
-    string public didYouWin;
-
-    address payable public owner;
-    address private TSLAAddr; 
-    address private ETHAddr; 
-    address private BTCAddr; 
 
     /**
-     * Network: Kovan
-     * Aggregator: TSLA/USD
-     * TSLA Address: 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2
+     * Asset player is betting on
      */
+    string public asset;
 
     /**
-     * Network: Rinkeby
-     * Aggregator: ETH/USD
-     * ETH Address: 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e
+     * Latest Price
      */
-    
+    int public latestPrice;
+
     /**
-     * Network: Rinkeby
-     * Aggregator: BTC/USD
-     * TSLA Address: 0xECe365B379E1dD183B20fc5f022230C044d51404
+     * Difference in Actual and Expected
+     */
+    int public difference;
+
+    /**
+     * Asset Oracle Addresses
+     */
+    address private OilAddr = 0x6292aA9a6650aE14fbf974E5029f36F95a1848Fd;
+    address private ETHAddr = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
+    address private BTCAddr = 0xECe365B379E1dD183B20fc5f022230C044d51404;
+
+    /**
+     *  Contructor: initializes owner, initilizes the price feed
      */
     constructor() {
-        address owner = msg.sender;
-        TSLAAddr = 0xb31357d152638fd1ae0853d24b9Ea81dF29E3EF2;
-        ETHAddr = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
-        BTCAddr = 0xECe365B379E1dD183B20fc5f022230C044d51404;
-        // set it to the 0 address by default
         priceFeed = AggregatorV3Interface(address(0));
     }
 
+    /**
+     *  Checks for a valid bet amount
+     */
     modifier validBet (uint _amount) {
-        require(_amount >= 0, "Have to bet more than 0");
-        require(msg.sender.balance >= _amount, "Don't have enough funds to make bet");
+        require(_amount > 0 && contractBalance >= _amount, "Invalid Bet");
         _;
     }
 
     /**
-     * (make this charge money based on how much you want to bet) Done
-     * (Need to make it check that _bettingOn is either "TSLA" "ETH" or "BTC") Done
-     * (need to make it check that bet amount is less than the money they own) Done
+     *  Places bet
      */
-    function placeBet(int _pricePediction, string calldata _bettingOn) public payable validBet(msg.value){
-        require(_pricePediction > 0, "invalid price prediction");
-        // make sure the contract has enough funds to pay gambler if they win
-        require(address(this).balance >= msg.value, "contract doesn't have enough funds to pay prize");
-        // require that they bet on BTC ETH or TSLA
-        // require(keccak256(bytes(_bettingOn)) == keccak256(bytes("TSLA"))
-        // || keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))
-        // || keccak256(bytes(bettingOn)) == keccak256(bytes("BTC")));
-        // transfer bet to the contract owner
-        // owner.transfer(msg.value);
-        yourBet = _pricePediction;
-        betAmount = msg.value;
-        bettingOn = _bettingOn;
+    function placeBet(int _prediction, string calldata _asset, uint _betAmount) public 
+    validBet(_betAmount) {
+
+        // gets latest price
+        predictedAssetPrice = _prediction;
+        betAmount = _betAmount;
+        asset = _asset;
+        latestPrice = getLatestPrice();
+        
+
+        getAccuracy();
+        calculatePrize();
     }
 
     /**
      * Returns the latest price using chainlink oracle
      */
-    function getLatestPrice() public returns (int) {
-        if (keccak256(bytes(bettingOn)) == keccak256(bytes("TSLA"))){
-            priceFeed = AggregatorV3Interface(TSLAAddr);
+    function getLatestPrice() private returns (int) {
+        if (keccak256(bytes(asset)) == keccak256(bytes("OIL"))){
+            priceFeed = AggregatorV3Interface(OilAddr);
         }
     
-        if (keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))){
+        if (keccak256(bytes(asset)) == keccak256(bytes("ETH"))){
             priceFeed = AggregatorV3Interface(ETHAddr);
         }
     
-        if (keccak256(bytes(bettingOn)) == keccak256(bytes("BTC"))){
+        if (keccak256(bytes(asset)) == keccak256(bytes("BTC"))){
             priceFeed = AggregatorV3Interface(BTCAddr);
         }
 
@@ -99,58 +102,31 @@ contract PriceConsumerV3 {
             uint timeStamp,
             uint80 answeredInRound
         ) = priceFeed.latestRoundData();
-        // converts price to int
-        actualPrice = price/10**8;
-        return actualPrice;
+
+        return price/10**8;
     }
 
     /**
      * finds the absolute value of the difference between your bet and the actual price
      */
-    function betAccuracy() public returns (int) {
-        betDifference = abs(yourBet - actualPrice);
-        return abs(yourBet - actualPrice);
+    function getAccuracy() private {
+        difference = latestPrice - predictedAssetPrice;
+        difference = difference >= 0 ? difference : -difference;
     }
 
     /**
-     * Give prizes based on how close the bet was
-     * (need to change to return crypto prizes based on bet amount) Done
+     * Calculates Prize
      */
-    function calculatePrize() public payable returns (int) {
-        // if bet was less then $2 away return double the bet
-        if (betDifference < 5) {
-            payable(msg.sender).transfer(betAmount);
-            didYouWin = "You won!";
+    function calculatePrize() private {
+        if (difference <= 10) {
+            contractBalance += betAmount;
         }
-        // if bet was between $2 and $5 net profit is 0
-        if (5 <= betDifference && betDifference < 10) {
-            didYouWin = "Close, you get your bet back";
-            return 0;
-        }
-        // if they are more than $5 off they lost their bet
         else {
-            didYouWin = "You Lost";
-            owner.transfer(betAmount);
+            contractBalance -= betAmount;
         }
     }
 
-    /**
-     * absolute value helper function
-     */
-    function abs(int x) private pure returns (int) {
-        return x >= 0 ? x : -x;
-    }
-
-    /**
-    * helper function to deposit funds to the contract so that it has enough to distribute prize to winner
-    */
-    function depositFunds() external payable {
-
-    }
-    /**
-    * helper function to get the balance of the contract
-    */
-    function balanceOfContract() external view returns(uint) {
-        return address(this).balance;
-    }
 }
+
+
+
