@@ -129,4 +129,8 @@ contract PriceConsumerV3 {
 }
 
 
-
+// get a few more rinkeby hashes
+// change the percetnage win, 10-20-30
+// risky: depends on percentage of funds, 100% more
+// difficulty level, easy, medium, HARDCODED
+// rng thing, that we got it working, for starting funds
