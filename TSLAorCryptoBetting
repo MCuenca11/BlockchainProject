@@ -14,9 +14,10 @@ contract PriceConsumerV3 {
      */
     string public bettingOn;
     int public actualPrice;
-    int private betDifference;
+    int public betDifference;
     // int public accuracyPercentage;
-    int public prizeAmount;
+    int private prizeAmount;
+    string public didYouWin;
 
     address payable public owner;
     address private TSLAAddr; 
@@ -65,9 +66,9 @@ contract PriceConsumerV3 {
         // make sure the contract has enough funds to pay gambler if they win
         require(address(this).balance >= msg.value, "contract doesn't have enough funds to pay prize");
         // require that they bet on BTC ETH or TSLA
-        require(keccak256(bytes(_bettingOn)) == keccak256(bytes("TSLA"))
-        || keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))
-        || keccak256(bytes(bettingOn)) == keccak256(bytes("BTC")));
+        // require(keccak256(bytes(_bettingOn)) == keccak256(bytes("TSLA"))
+        // || keccak256(bytes(bettingOn)) == keccak256(bytes("ETH"))
+        // || keccak256(bytes(bettingOn)) == keccak256(bytes("BTC")));
         // transfer bet to the contract owner
         // owner.transfer(msg.value);
         yourBet = _pricePediction;
@@ -117,15 +118,18 @@ contract PriceConsumerV3 {
      */
     function calculatePrize() public payable returns (int) {
         // if bet was less then $2 away return double the bet
-        if (betDifference < 2) {
+        if (betDifference < 5) {
             payable(msg.sender).transfer(betAmount);
+            didYouWin = "You won!";
         }
         // if bet was between $2 and $5 net profit is 0
-        if (2 <= betDifference && betDifference < 5) {
+        if (5 <= betDifference && betDifference < 10) {
+            didYouWin = "Close, you get your bet back";
             return 0;
         }
         // if they are more than $5 off they lost their bet
         else {
+            didYouWin = "You Lost";
             owner.transfer(betAmount);
         }
     }
