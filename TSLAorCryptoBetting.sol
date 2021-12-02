@@ -1,0 +1,256 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+
+import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
+
+/**
+ * THIS IS AN EXAMPLE CONTRACT WHICH USES HARDCODED VALUES FOR CLARITY.
+ * PLEASE DO NOT USE THIS CODE IN PRODUCTION.
+ */
+
+/**
+ * Request testnet LINK and ETH here: https://faucets.chain.link/
+ * Find information on LINK Token Contracts and get the latest ETH and LINK faucets here: https://docs.chain.link/docs/link-token-contracts/
+ */
+ 
+contract RandomNumberConsumer is VRFConsumerBase {
+    
+    bytes32 internal keyHash;
+    uint256 internal fee;
+    
+    uint256 public randomResult;
+    
+    /**
+     * Constructor inherits VRFConsumerBase
+     * 
+     * Network: Rinkeby Test Net
+     * Chainlink VRF Coordinator address: 0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B
+     * LINK token address:                0x01BE23585060835E02B77ef475b0Cc51aA1e0709
+     * Key Hash: 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311
+     */
+    constructor() 
+        VRFConsumerBase(
+            0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, // VRF Coordinator
+            0x01BE23585060835E02B77ef475b0Cc51aA1e0709  // LINK Token
+        )
+    {
+        keyHash = 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311;
+        fee = 0.1 * 10 ** 18; // 0.1 LINK (Varies by network)
+    }
+    
+    /** 
+     * Requests randomness 
+     */
+    function getRandomNumber() public returns (bytes32 requestId) {
+        require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK - fill contract with faucet");
+        return requestRandomness(keyHash, fee);
+    }
+
+    /**
+     * Callback function used by VRF Coordinator
+     */
+    function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
+        randomResult = randomness;
+    }
+
+    // function getRandNum() private returns (int){
+    //     return randomResult;
+    // }
+
+    // function withdrawLink() external {} - Implement a withdraw function to avoid locking your LINK in the contract
+}
+
+contract PriceConsumerV3 is RandomNumberConsumer {
+
+    /**
+     * How much the player has to bet
+    */
+    uint public playerFunds = 100;
+
+    /**
+     * Live Price Feed
+    */
+    AggregatorV3Interface internal priceFeed;
+
+
+    /**
+     * Percent of holdings that a player bets
+    */
+    int public percentOfHoldings;
+
+    /**
+     * Predicted Asset Price
+     */
+    int public predictedAssetPrice;
+
+    /**
+     * Amount Player is betting
+     */
+    uint public betAmount;
+
+    /**
+     * Asset player is betting on
+     */
+    string public asset;
+
+    /**
+     * Latest Price
+     */
+    int public latestPrice;
+
+    /**
+     * Difference in Actual and Expected
+     */
+    int public difference;
+
+    /**
+     * Difference in Actual and Expected
+     */
+    int public price_difference;
+
+    /**
+     * Riskiness of players bet
+    */
+    string public riskiness;
+
+    /**
+     * Asset Oracle Addresses
+     */
+    address private OilAddr = 0x6292aA9a6650aE14fbf974E5029f36F95a1848Fd;
+    address private ETHAddr = 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e;
+    address private BTCAddr = 0xECe365B379E1dD183B20fc5f022230C044d51404;
+    
+    /**
+     *  Contructor: initializes owner, initilizes the price feed
+     */
+    constructor() {
+        priceFeed = AggregatorV3Interface(address(0));
+    }
+
+    /**
+     *  Checks for a valid bet amount
+     */
+    modifier validBet (uint _amount) {
+        require(_amount > 0 && playerFunds >= _amount, "Invalid Bet");
+        _;
+    }
+
+    /**
+    * Calls random number from RNG class and converts it to a num in the hundreds
+    */
+    function setPlayerFunds() public {
+        playerFunds = randomResult/10**74;
+    }
+
+    /**
+     *  Places bet
+     */
+    function placeBet(int _prediction, string calldata _asset, uint _betAmount) public 
+    validBet(_betAmount) {
+
+        // gets latest price
+        predictedAssetPrice = _prediction;
+        betAmount = _betAmount;
+        asset = _asset;
+        latestPrice = getLatestPrice();
+        
+
+        calculatePrize();
+    }
+
+    /**
+     * Returns the latest price using chainlink oracle
+     */
+    function getLatestPrice() private returns (int) {
+        if (keccak256(bytes(asset)) == keccak256(bytes("OIL"))){
+            priceFeed = AggregatorV3Interface(OilAddr);
+        }
+    
+        if (keccak256(bytes(asset)) == keccak256(bytes("ETH"))){
+            priceFeed = AggregatorV3Interface(ETHAddr);
+        }
+    
+        if (keccak256(bytes(asset)) == keccak256(bytes("BTC"))){
+            priceFeed = AggregatorV3Interface(BTCAddr);
+        }
+
+        (
+            uint80 roundID, 
+            int price,
+            uint startedAt,
+            uint timeStamp,
+            uint80 answeredInRound
+        ) = priceFeed.latestRoundData();
+
+        return price/10**8;
+    }
+
+    /**
+     * finds the absolute value of the truncated percent difference between 2 values
+     */
+    function percentDifference(int _value1, int _value2) public returns(int) {
+
+        difference = ((_value1 - _value2)*100)/(_value2);
+        difference = difference >= 0 ? difference : -difference;
+        return difference;
+        /*
+        difference = ((predictedAssetPrice - latestPrice)*100)/((predictedAssetPrice + latestPrice)/2);
+        difference = difference >= 0 ? difference : -difference;
+        */
+    }
+
+    /**
+     * Calculates Prize
+     */
+    function calculatePrize() private {
+        percentOfHoldings = 100 - percentDifference(int(betAmount), int(playerFunds));
+        price_difference = percentDifference(latestPrice, predictedAssetPrice);
+
+        if (percentOfHoldings == 100) {
+            riskiness = "Insane";
+            if (price_difference <= 10) {
+                playerFunds += betAmount*2;
+            }
+            else if (price_difference > 20) {
+                playerFunds -= betAmount;
+            }
+        }
+        else if (percentOfHoldings < 100 && percentOfHoldings >= 66) {
+            riskiness = "Large";
+            if (price_difference <= 10) {
+                playerFunds += (betAmount*3)/2;
+            }
+            else if (price_difference > 20) {
+                playerFunds -= betAmount;
+            }
+        }
+        else if (percentOfHoldings < 66 && percentOfHoldings >= 33) {
+            riskiness = "Moderate";
+            if (price_difference <= 10) {
+                playerFunds += (betAmount*5)/4;
+            }
+            else if (price_difference > 20) {
+                playerFunds -= betAmount;
+            }
+        }
+        else {
+            riskiness = "Low";
+            if (price_difference <= 10) {
+                playerFunds += betAmount;
+            }
+            else if (price_difference > 20) {
+                playerFunds -= betAmount;
+            }
+        }
+    }
+
+}
+
+
+// get a few more rinkeby hashes
+// change the percetnage win, 10-20-30
+// risky: depends on percentage of funds, 100% more
+// difficulty level, easy, medium, HARDCODED
+// rng thing, that we got it working, for starting funds
