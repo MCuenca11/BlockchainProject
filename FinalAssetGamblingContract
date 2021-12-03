@@ -188,7 +188,7 @@ contract PriceConsumerV3 is RandomNumberConsumer {
      */
     function percentDifference(int _value1, int _value2) private returns(int) {
         pricePercentDifference = ((_value1 - _value2)*100)/(_value2);
-        pricePercentDifference = priceDifference >= 0 ? priceDifference : -priceDifference;
+        pricePercentDifference = pricePercentDifference >= 0 ? pricePercentDifference : -pricePercentDifference;
         return pricePercentDifference;
     }
 
